@@ -19,11 +19,13 @@ class Board:
         CELL_HEIGHT = 64
         self.SCALE = 64
         self.piece_position = {}
-        self.inverse_piece_position = {}
         self.move_position = []
         switch = 0      
         self.startpos = (None, None)
         self.item = None
+        self.last_move = {"move" : [(None, None), (None, None)], "piece" : None, "type" : None}
+        self.piece_type = None
+        self.en_passant = {"piece" : None, "canhappen" : False, "coords" : None}
 
         master.geometry(f"{CELL_WIDTH*8}x{CELL_HEIGHT*8}")
         #master.resizable(0, 0)
@@ -78,7 +80,6 @@ class Board:
         column = 0
         for i in self.canvas.find_withtag("pblack"):
             self.piece_position[i] = (column, row)
-            self.inverse_piece_position[(column, row)] = i
             self.canvas.coords(i, column * self.SCALE, row * self.SCALE)
             column += 1
 
@@ -86,7 +87,6 @@ class Board:
         row = 6
         for i in self.canvas.find_withtag("pwhite"):
             self.piece_position[i] = (column, row)
-            self.inverse_piece_position[(column, row)] = i
             self.canvas.coords(i, column * self.SCALE, row * self.SCALE)
             column += 1
 
@@ -94,7 +94,6 @@ class Board:
         row = 0
         for i in self.canvas.find_withtag("nblack"):
             self.piece_position[i] = (column, row)
-            self.inverse_piece_position[(column, row)] = i
             self.canvas.coords(i, column * self.SCALE, row * self.SCALE)
             column *= 6
 
@@ -102,7 +101,6 @@ class Board:
         row = 7
         for i in self.canvas.find_withtag("nwhite"):
             self.piece_position[i] = (column, row)
-            self.inverse_piece_position[(column, row)] = i
             self.canvas.coords(i, column * self.SCALE, row * self.SCALE)
             column *= 6
 
@@ -110,21 +108,18 @@ class Board:
         row = 0
         for i in self.canvas.find_withtag("kblack"):
             self.piece_position[i] = (column, row)
-            self.inverse_piece_position[(column, row)] = i
             self.canvas.coords(i, column * self.SCALE, row * self.SCALE)
 
         column = 4
         row = 7
         for i in self.canvas.find_withtag("kwhite"):
             self.piece_position[i] = (column, row)
-            self.inverse_piece_position[(column, row)] = i
             self.canvas.coords(i, column * self.SCALE, row * self.SCALE)
 
         column = 0
         row = 0
         for i in self.canvas.find_withtag("rblack"):
             self.piece_position[i] = (column, row)
-            self.inverse_piece_position[(column, row)] = i
             self.canvas.coords(i, column * self.SCALE, row * self.SCALE)
             column += 7
 
@@ -132,7 +127,6 @@ class Board:
         row = 7
         for i in self.canvas.find_withtag("rwhite"):
             self.piece_position[i] = (column, row)
-            self.inverse_piece_position[(column, row)] = i
             self.canvas.coords(i, column * self.SCALE, row * self.SCALE)
             column += 7
 
@@ -140,7 +134,6 @@ class Board:
         row = 0
         for i in self.canvas.find_withtag("bblack"):
             self.piece_position[i] = (column, row)
-            self.inverse_piece_position[(column, row)] = i
             self.canvas.coords(i, column * self.SCALE, row * self.SCALE)
             column += 3
 
@@ -148,7 +141,6 @@ class Board:
         row = 7
         for i in self.canvas.find_withtag("bwhite"):
             self.piece_position[i] = (column, row)
-            self.inverse_piece_position[(column, row)] = i
             self.canvas.coords(i, column * self.SCALE, row * self.SCALE)
             column += 3
 
@@ -156,19 +148,17 @@ class Board:
         row = 0
         for i in self.canvas.find_withtag("qblack"):
             self.piece_position[i] = (column, row)
-            self.inverse_piece_position[(column, row)] = i
             self.canvas.coords(i, column * self.SCALE, row * self.SCALE)
 
         column = 3
         row = 7
         for i in self.canvas.find_withtag("qwhite"):
             self.piece_position[i] = (column, row)
-            self.inverse_piece_position[(column, row)] = i
             self.canvas.coords(i, column * self.SCALE, row * self.SCALE)
 
 
 
-    def reset(self, event):  
+    def reset(self, event): 
         if self.item:
             try:
                 square = [i for i in self.canvas.find_overlapping(event.x, event.y, event.x, event.y) if (i,) != self.item]
@@ -176,14 +166,26 @@ class Board:
                 #print(lockin)
                 coords = (lockin[0]//self.SCALE, lockin[1]//self.SCALE)
                 print(coords)
-                if coords in self.move_position:
-                    print("moved")
-                    if coords in self.inverse_piece_position:
-                        self.canvas.delete(self.inverse_piece_position[coords])
-                        del self.inverse_piece_position[coords]
-                    self.canvas.coords(self.item, lockin[0], lockin[1])
-                    self.piece_position[self.item[0]] = (lockin[0]//self.SCALE, lockin[1]//self.SCALE)
-                    self.inverse_piece_position[(lockin[0]//self.SCALE, lockin[1]//self.SCALE)] = self.item[0]
+                if coords in self.move_position:        
+                    self.last_move["move"] = (self.piece_position[self.item[0]], coords)
+                    self.last_move["piece"] = self.item
+                    self.last_move["type"] = self.piece_type
+
+                    if coords in self.piece_position.values():
+                        delete = list(self.piece_position.keys())[list(self.piece_position.values()).index(coords)]
+                        self.canvas.delete(delete)
+                        del self.piece_position[delete]
+
+                    if self.en_passant["canhappen"]:
+                        print("en_passant")
+                        if self.en_passant["coords"] == coords:
+                            self.canvas.delete(self.en_passant["piece"])
+                            self.en_passant["canhappen"] = False
+                            self.en_passant["piece"] = None
+                            self.en_passant["coords"] = None
+
+                    self.canvas.coords(self.item, coords[0]*self.SCALE, coords[1]*self.SCALE)
+                    self.piece_position[self.item[0]] = coords
                     self.move_position.clear()
                     self.canvas.delete("move_view")
                 else:
@@ -201,41 +203,58 @@ class Board:
 
     def click(self, event):
         self.move_position.clear()
-        print(event)
         self.canvas.delete("move_view")
         self.startpos = (event.x , event.y)
         self.item = self.canvas.find_closest(event.x, event.y)
         
         tags = [i for i in self.canvas.itemcget(self.item, "tags").split(" ") if i in self.PIECES]
         piece = tags[0]
-        print(tags)
+        self.piece_type = piece
         coords = self.piece_position[self.item[0]]
-        print(self.canvas.itemcget(self.inverse_piece_position[(coords[0], coords[1])], "tags").split(" "))
-        #print(coords)
-        #print(self.inverse_piece_position)
+
         if piece[0] == "p":   # pawn
             if piece[1] == "w":
                 if (coords[0]-1, coords[1]-1) in self.piece_position.values():                   
-                    if any(i.find("black") != -1 for i in self.canvas.itemcget(self.inverse_piece_position[(coords[0]-1, coords[1]-1)], "tags").split(" ")):
+                    if any(i.find("black") != -1 for i in self.canvas.itemcget(list(self.piece_position.keys())[list(self.piece_position.values()).index((coords[0]-1, coords[1]-1))], "tags").split(" ")):
                         self.create_cirle((coords[0]-1)*self.SCALE+self.SCALE//2, (coords[1]-1)*self.SCALE+self.SCALE//2, 16, (coords[0]-1, coords[1]-1)) 
                 if (coords[0]+1, coords[1]-1) in self.piece_position.values():
-                    if any(i.find("black") != -1 for i in self.canvas.itemcget(self.inverse_piece_position[(coords[0]+1, coords[1]-1)], "tags").split(" ")):
+                    if any(i.find("black") != -1 for i in self.canvas.itemcget(list(self.piece_position.keys())[list(self.piece_position.values()).index((coords[0]+1, coords[1]-1))], "tags").split(" ")):
                         self.create_cirle((coords[0]+1)*self.SCALE+self.SCALE//2, (coords[1]-1)*self.SCALE+self.SCALE//2, 16, (coords[0]+1, coords[1]-1)) 
                 if (coords[0], coords[1]-1) not in self.piece_position.values():
                     self.create_cirle(coords[0]*self.SCALE+self.SCALE//2, (coords[1]-1)*self.SCALE+self.SCALE//2, 16, (coords[0], coords[1]-1)) 
                     if coords[1] == 6 and (coords[0], coords[1]-2) not in self.piece_position.values():                   
                         self.create_cirle(coords[0]*self.SCALE+self.SCALE//2, (coords[1]-2)*self.SCALE+self.SCALE//2, 16, (coords[0], coords[1]-2))                
+                if self.last_move["type"] == "pblack" and self.last_move["move"][1][1] - 2 == self.last_move["move"][0][1] and self.last_move["move"][1][1] == coords[1]:
+                    self.en_passant["piece"] = self.last_move["piece"]
+                    self.en_passant["canhappen"] = True
+                    print("en_passent")
+                    if self.last_move["move"][1][0] + 1 == coords[0]: 
+                        self.create_cirle((coords[0]-1)*self.SCALE+self.SCALE//2, (coords[1]-1)*self.SCALE+self.SCALE//2, 16, (coords[0]-1, coords[1]-1)) 
+                        self.en_passant["coords"] = (coords[0]-1, coords[1]-1)
+                    if self.last_move["move"][1][0] - 1 == coords[0]: 
+                        self.create_cirle((coords[0]+1)*self.SCALE+self.SCALE//2, (coords[1]-1)*self.SCALE+self.SCALE//2, 16, (coords[0]+1, coords[1]-1)) 
+                        self.en_passant["coords"] = (coords[0]+1, coords[1]-1)
             else:
                 if (coords[0]+1, coords[1]+1) in self.piece_position.values():
-                    if any(i.find("white") !=-1 for i in self.canvas.itemcget(self.inverse_piece_position[(coords[0]+1, coords[1]+1)], "tags").split(" ")):
+                    if any(i.find("white") !=-1 for i in self.canvas.itemcget(list(self.piece_position.keys())[list(self.piece_position.values()).index((coords[0]+1, coords[1]+1))], "tags").split(" ")):
                         self.create_cirle((coords[0]+1)*self.SCALE+self.SCALE//2, (coords[1]+1)*self.SCALE+self.SCALE//2, 16, (coords[0]+1, coords[1]+1)) 
-                if (coords[0]-1, coords[1]-1) in self.piece_position.values():
-                    if any(i.find("white") !=-1 for i in self.canvas.itemcget(self.inverse_piece_position[(coords[0]-1, coords[1]-1)], "tags").split(" ")):
-                        self.create_cirle((coords[0]+1)*self.SCALE+self.SCALE//2, (coords[1]+1)*self.SCALE+self.SCALE//2, 16, (coords[0]+1, coords[1]+1)) 
+                if (coords[0]-1, coords[1]+1) in self.piece_position.values():
+                    if any(i.find("white") !=-1 for i in self.canvas.itemcget(list(self.piece_position.keys())[list(self.piece_position.values()).index((coords[0]-1, coords[1]+1))], "tags").split(" ")):
+                        self.create_cirle((coords[0]-1)*self.SCALE+self.SCALE//2, (coords[1]+1)*self.SCALE+self.SCALE//2, 16, (coords[0]-1, coords[1]+1)) 
                 if (coords[0], coords[1]+1) not in self.piece_position.values():
                     self.create_cirle(coords[0]*self.SCALE+self.SCALE//2, (coords[1]+1)*self.SCALE+self.SCALE//2, 16, (coords[0], coords[1]+1)) 
                     if coords[1] == 1 and (coords[0], coords[1]+2) not in self.piece_position.values():                   
                         self.create_cirle(coords[0]*self.SCALE+self.SCALE//2, (coords[1]+2)*self.SCALE+self.SCALE//2, 16, (coords[0], coords[1]+2))
+                if self.last_move["type"] == "pwhite" and self.last_move["move"][1][1] + 2 == self.last_move["move"][0][1] and self.last_move["move"][1][1] == coords[1]:
+                    self.en_passant["piece"] = self.last_move["piece"]
+                    self.en_passant["canhappen"] = True
+                    print("en_passent")
+                    if self.last_move["move"][1][0] + 1 == coords[0]: 
+                        self.create_cirle((coords[0]-1)*self.SCALE+self.SCALE//2, (coords[1]+1)*self.SCALE+self.SCALE//2, 16, (coords[0]-1, coords[1]+1)) 
+                        self.en_passant["coords"] = (coords[0]-1, coords[1]+1)
+                    if self.last_move["move"][1][0] - 1 == coords[0]: 
+                        self.create_cirle((coords[0]+1)*self.SCALE+self.SCALE//2, (coords[1]+1)*self.SCALE+self.SCALE//2, 16, (coords[0]+1, coords[1]+1)) 
+                        self.en_passant["coords"] = (coords[0]+1, coords[1]+1)
         elif piece[0] == "n": # knight
             if piece[1] == "w":
                 pass
@@ -275,13 +294,21 @@ class Board:
             self.canvas.coords(self.item, event.x - self.SCALE//2, event.y - self.SCALE//2)
 
     def create_cirle(self, x, y, radius, coords):
-        x1 = x-radius 
-        y1 = y-radius
-        x2 = x+radius
-        y2 = y+radius
-        #print(coords)
+        if coords in self.piece_position.values():
+            x1 = x-radius*2 + 5
+            y1 = y-radius*2 + 5
+            x2 = x+radius*2 - 5
+            y2 = y+radius*2 - 5
+            self.canvas.create_rectangle(x1, y1, x2, y2, tag = "move_view", outline='red', width = 5)
+        else:
+            x1 = x-radius 
+            y1 = y-radius
+            x2 = x+radius
+            y2 = y+radius
+            self.canvas.create_oval(x1, y1, x2, y2,fill = "green", tag = "move_view")
         self.move_position.append(coords)
-        self.canvas.create_oval(x1, y1, x2, y2,fill = "green", tag = "move_view")
+
+        
 
 if __name__ == "__main__":
     a = Board(root)
