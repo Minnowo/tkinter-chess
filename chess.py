@@ -14,9 +14,11 @@ class Board:
         self.black = []
         self.images = {}
         self.PIECES = {"pwhite" : 8, "pblack" : 8, "nwhite" : 2, "nblack" : 2, "kwhite" : 1, "kblack" : 1, "rwhite" : 2, "rblack" : 2, "bwhite" : 2, "bblack" : 2, "qwhite" : 1, "qblack" : 1}
+        self.PIECE_NAME = {}
         CELL_WIDTH = 64
         CELL_HEIGHT = 64
         switch = 0      
+        self.startpos = (None, None)
         self.item = None
 
         master.geometry(f"{CELL_WIDTH*8}x{CELL_HEIGHT*8}")
@@ -46,12 +48,12 @@ class Board:
 
 
                 if switch:
-                    self.canvas.create_rectangle(x1, y1, x2, y2, fill = "#B58863", tag = f"{row} {column} square")#0xB58863, 0xF0D9B5, 
+                    self.canvas.create_rectangle(x1, y1, x2, y2, fill = "#B58863", tag = "square")#0xB58863, 0xF0D9B5, 
                 else:
-                    self.canvas.create_rectangle(x1, y1, x2, y2, fill = "#F0D9B5", tag = f"{row} {column} square")
+                    self.canvas.create_rectangle(x1, y1, x2, y2, fill = "#F0D9B5", tag = "square")
         self.create_pieces()
         self.place_pieces()
-        #print(self.images)
+        print(self.PIECE_NAME)
 
     def create_pieces(self):
         for piece in self.PIECES:
@@ -61,6 +63,7 @@ class Board:
                 image = self.canvas.create_image(0, 0, image = img, anchor = NW, tag = "piece") 
                 self.canvas.image = img                     # Keep img in memory # VERY IMPORTANT
                 self.images[image] = img
+                self.PIECE_NAME[image] = piece
                 root.update()
                 self.canvas.tag_raise("piece")
 
@@ -76,11 +79,23 @@ class Board:
                 self.canvas.coords(keys[x-1], coords[0], coords[1])
             else:break
 
-    def reset(self, event):
-        self.item = None
+    def reset(self, event):  
+        if self.item:
+            try:
+                square = [i for i in self.canvas.find_overlapping(event.x, event.y, event.x, event.y) if (i,) != self.item]
+                lockin = [int(i) for i in self.canvas.coords(square[0])]
+                self.canvas.coords(self.item, lockin[0], lockin[1])
+                self.item = None
+            except: # if there is an error put the piece back where it started
+                square = [i for i in self.canvas.find_overlapping(self.startpos[0], self.startpos[1], self.startpos[0], self.startpos[1]) if (i,) != self.item]
+                lockin = [int(i) for i in self.canvas.coords(square[0])]
+                self.canvas.coords(self.item, lockin[0], lockin[1])
+                self.item = None
+            print(square)
 
     def click(self, event):
         print(event)
+        self.startpos = (event.x , event.y)
         self.item = self.canvas.find_closest(event.x, event.y)
         print(self.item)
 
