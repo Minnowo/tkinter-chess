@@ -229,10 +229,10 @@ class Board:
                     self.en_passant["canhappen"] = True
                     print("en_passent")
                     if self.last_move["move"][1][0] + 1 == coords[0]: 
-                        self.create_cirle((coords[0]-1)*self.SCALE+self.SCALE//2, (coords[1]-1)*self.SCALE+self.SCALE//2, 16, (coords[0]-1, coords[1]-1)) 
+                        self.create_cirle((coords[0]-1)*self.SCALE+self.SCALE//2, (coords[1]-1)*self.SCALE+self.SCALE//2, 16, (coords[0]-1, coords[1]-1), 1) 
                         self.en_passant["coords"] = (coords[0]-1, coords[1]-1)
                     if self.last_move["move"][1][0] - 1 == coords[0]: 
-                        self.create_cirle((coords[0]+1)*self.SCALE+self.SCALE//2, (coords[1]-1)*self.SCALE+self.SCALE//2, 16, (coords[0]+1, coords[1]-1)) 
+                        self.create_cirle((coords[0]+1)*self.SCALE+self.SCALE//2, (coords[1]-1)*self.SCALE+self.SCALE//2, 16, (coords[0]+1, coords[1]-1), 1) 
                         self.en_passant["coords"] = (coords[0]+1, coords[1]-1)
             else:
                 if (coords[0]+1, coords[1]+1) in self.piece_position.values():
@@ -250,16 +250,26 @@ class Board:
                     self.en_passant["canhappen"] = True
                     print("en_passent")
                     if self.last_move["move"][1][0] + 1 == coords[0]: 
-                        self.create_cirle((coords[0]-1)*self.SCALE+self.SCALE//2, (coords[1]+1)*self.SCALE+self.SCALE//2, 16, (coords[0]-1, coords[1]+1)) 
+                        self.create_cirle((coords[0]-1)*self.SCALE+self.SCALE//2, (coords[1]+1)*self.SCALE+self.SCALE//2, 16, (coords[0]-1, coords[1]+1), 1) 
                         self.en_passant["coords"] = (coords[0]-1, coords[1]+1)
                     if self.last_move["move"][1][0] - 1 == coords[0]: 
-                        self.create_cirle((coords[0]+1)*self.SCALE+self.SCALE//2, (coords[1]+1)*self.SCALE+self.SCALE//2, 16, (coords[0]+1, coords[1]+1)) 
+                        self.create_cirle((coords[0]+1)*self.SCALE+self.SCALE//2, (coords[1]+1)*self.SCALE+self.SCALE//2, 16, (coords[0]+1, coords[1]+1), 1) 
                         self.en_passant["coords"] = (coords[0]+1, coords[1]+1)
         elif piece[0] == "n": # knight
-            if piece[1] == "w":
-                pass
+            if piece[1] == "w": 
+                for cord in [(coords[0]-2, coords[1]-1), (coords[0]+2, coords[1]-1), (coords[0]+2, coords[1]+1), (coords[0]-2, coords[1]+1), (coords[0]-1, coords[1]-2), (coords[0]+1, coords[1]-2), (coords[0]+1, coords[1]+2), (coords[0]-1, coords[1]+2)]:
+                    if cord in self.piece_position.values():
+                        if any(i.find("black") != -1 for i in self.canvas.itemcget(list(self.piece_position.keys())[list(self.piece_position.values()).index(cord)], "tags").split(" ")):                          
+                            self.create_cirle((cord[0])*self.SCALE+self.SCALE//2, (cord[1])*self.SCALE+self.SCALE//2, 16, cord)
+                    elif cord[0] >= 0 and cord[1] >= 0 and cord[0] <= 7 and cord[1] <= 7:
+                        self.create_cirle((cord[0])*self.SCALE+self.SCALE//2, (cord[1])*self.SCALE+self.SCALE//2, 16, (cord[0], cord[1]))                    
             else:
-                pass
+                for cord in [(coords[0]-2, coords[1]-1), (coords[0]+2, coords[1]-1), (coords[0]+2, coords[1]+1), (coords[0]-2, coords[1]+1), (coords[0]-1, coords[1]-2), (coords[0]+1, coords[1]-2), (coords[0]+1, coords[1]+2), (coords[0]-1, coords[1]+2)]:
+                    if cord in self.piece_position.values():
+                        if any(i.find("white") != -1 for i in self.canvas.itemcget(list(self.piece_position.keys())[list(self.piece_position.values()).index(cord)], "tags").split(" ")):                          
+                            self.create_cirle((cord[0])*self.SCALE+self.SCALE//2, (cord[1])*self.SCALE+self.SCALE//2, 16, cord)
+                    elif cord[0] >= 0 and cord[1] >= 0 and cord[0] <= 7 and cord[1] <= 7:
+                        self.create_cirle((cord[0])*self.SCALE+self.SCALE//2, (cord[1])*self.SCALE+self.SCALE//2, 16, (cord[0], cord[1])) 
         elif piece[0] == "q": # queen
             if piece[1] == "w":
                 pass
@@ -293,8 +303,8 @@ class Board:
         if "piece" in self.canvas.itemcget(self.item, "tags"):
             self.canvas.coords(self.item, event.x - self.SCALE//2, event.y - self.SCALE//2)
 
-    def create_cirle(self, x, y, radius, coords):
-        if coords in self.piece_position.values():
+    def create_cirle(self, x, y, radius, coords, redsquare = 0):
+        if coords in self.piece_position.values() or redsquare:
             x1 = x-radius*2 + 5
             y1 = y-radius*2 + 5
             x2 = x+radius*2 - 5
