@@ -63,6 +63,67 @@ class Board:
         self.place_pieces()
         print(self.PIECE_NAME)
 
+    def horizontal_move(self, spaces, attack_color, coords, pos):
+        for x in [(coords[0], coords[1], "+y"), (coords[0], coords[1], "-y"), (coords[0], coords[1], "+x"), (coords[0], coords[1], "-x")]:
+            for i in range(spaces):
+                i += 1 
+                if x[2] == "+y":cord = (x[0], x[1]+i)
+                elif x[2] == "-y":cord = (x[0], x[1]-i)
+                elif x[2] == "+x":cord = (x[0]+i, x[1])
+                elif x[2] == "-x":cord = (x[0]-i, x[1])
+                if cord[0] < 0 or cord[1] < 0 or cord[0] > 7 or cord[1] > 7:break
+                if cord not in pos:
+                    self.create_cirle((cord[0])*self.SCALE+self.SCALE//2, (cord[1])*self.SCALE+self.SCALE//2, 16, cord)
+                elif any(i.find(attack_color) != -1 for i in self.canvas.itemcget(list(self.piece_position.keys())[list(pos).index(cord)], "tags").split(" ")):
+                    self.create_cirle((cord[0])*self.SCALE+self.SCALE//2, (cord[1])*self.SCALE+self.SCALE//2, 16, cord)
+                    break
+                else:break
+
+    def diagonal_move(self, spaces, attack_color, coords, pos):
+        for x in [(coords[0], coords[1], "+y+x"), (coords[0], coords[1], "-y+x"), (coords[0], coords[1], "+y-x"), (coords[0], coords[1], "-y-x")]:
+            for i in range(spaces):
+                i += 1 
+                if x[2] == "+y+x":cord = (x[0]+i, x[1]+i)
+                elif x[2] == "-y+x":cord = (x[0]+i, x[1]-i)
+                elif x[2] == "+y-x":cord = (x[0]-i, x[1]+i)
+                elif x[2] == "-y-x":cord = (x[0]-i, x[1]-i)
+                if cord[0] < 0 or cord[1] < 0 or cord[0] > 7 or cord[1] > 7:break
+                if cord not in pos:
+                    self.create_cirle((cord[0])*self.SCALE+self.SCALE//2, (cord[1])*self.SCALE+self.SCALE//2, 16, cord)
+                elif any(i.find(attack_color) != -1 for i in self.canvas.itemcget(list(self.piece_position.keys())[list(pos).index(cord)], "tags").split(" ")):
+                    self.create_cirle((cord[0])*self.SCALE+self.SCALE//2, (cord[1])*self.SCALE+self.SCALE//2, 16, cord)
+                    break
+                else:break
+
+    def pawn_move(self, attack_color, coords, pos, direction, first_move_row):
+        for cord in [(coords[0]-(1*direction), coords[1]-(1*direction)), (coords[0]+(1*direction), coords[1]-(1*direction))]:
+            if cord in pos:
+                if any(i.find(attack_color) != -1 for i in self.canvas.itemcget(list(self.piece_position.keys())[list(pos).index(cord)], "tags").split(" ")):
+                    self.create_cirle((cord[0])*self.SCALE+self.SCALE//2, (cord[1])*self.SCALE+self.SCALE//2, 16, cord) 
+            if (coords[0], coords[1]-(1*direction)) not in pos:
+                self.create_cirle(coords[0]*self.SCALE+self.SCALE//2, (coords[1]-(1*direction))*self.SCALE+self.SCALE//2, 16, (coords[0], coords[1]-(1*direction))) 
+                if coords[1] == first_move_row and (coords[0], coords[1]-(2*direction)) not in pos:                   
+                    self.create_cirle(coords[0]*self.SCALE+self.SCALE//2, (coords[1]-(2*direction))*self.SCALE+self.SCALE//2, 16, (coords[0], coords[1]-(2*direction)))            
+                                      
+            if self.last_move["type"] == f"p{attack_color}" and self.last_move["move"][1][1] - (2*direction) == self.last_move["move"][0][1] and self.last_move["move"][1][1] == coords[1]:
+                self.en_passant["piece"] = self.last_move["piece"]
+                self.en_passant["canhappen"] = True
+                print("en_passent")
+                if self.last_move["move"][1][0] + (1*direction) == coords[0]: 
+                    self.create_cirle((coords[0]-(1*direction))*self.SCALE+self.SCALE//2, (coords[1]-(1*direction))*self.SCALE+self.SCALE//2, 16, (coords[0]-(1*direction), coords[1]-(1*direction)), 1) 
+                    self.en_passant["coords"] = (coords[0]-(1*direction), coords[1]-(1*direction))
+                if self.last_move["move"][1][0] - (1*direction) == coords[0]: 
+                    self.create_cirle((coords[0]+(1*direction))*self.SCALE+self.SCALE//2, (coords[1]-(1*direction))*self.SCALE+self.SCALE//2, 16, (coords[0]+(1*direction), coords[1]-(1*direction)), 1) 
+                    self.en_passant["coords"] = (coords[0]+(1*direction), coords[1]-(1*direction))
+
+    def knight_move(self, attack_color, coords, pos):
+        for cord in [(coords[0]-2, coords[1]-1), (coords[0]+2, coords[1]-1), (coords[0]+2, coords[1]+1), (coords[0]-2, coords[1]+1), (coords[0]-1, coords[1]-2), (coords[0]+1, coords[1]-2), (coords[0]+1, coords[1]+2), (coords[0]-1, coords[1]+2)]:
+            if cord in pos:
+                if any(i.find(attack_color) != -1 for i in self.canvas.itemcget(list(self.piece_position.keys())[list(pos).index(cord)], "tags").split(" ")):                          
+                    self.create_cirle((cord[0])*self.SCALE+self.SCALE//2, (cord[1])*self.SCALE+self.SCALE//2, 16, cord)
+            elif cord[0] >= 0 and cord[1] >= 0 and cord[0] <= 7 and cord[1] <= 7:
+                self.create_cirle((cord[0])*self.SCALE+self.SCALE//2, (cord[1])*self.SCALE+self.SCALE//2, 16, (cord[0], cord[1])) 
+
     def create_pieces(self):
         for piece in self.PIECES:
             img = ImageTk.PhotoImage(file = "pieces\\{}.png".format(piece))
@@ -216,80 +277,39 @@ class Board:
         pos = self.piece_position.values()
         if piece[0] == "p":   # pawn
             if piece[1] == "w":
-                for cord in [(coords[0]-1, coords[1]-1), (coords[0]+1, coords[1]-1)]:
-                    if cord in pos:
-                        if any(i.find("black") != -1 for i in self.canvas.itemcget(list(self.piece_position.keys())[list(pos).index(cord)], "tags").split(" ")):
-                            self.create_cirle((cord[0])*self.SCALE+self.SCALE//2, (cord[1])*self.SCALE+self.SCALE//2, 16, cord) 
-                if (coords[0], coords[1]-1) not in pos:
-                    self.create_cirle(coords[0]*self.SCALE+self.SCALE//2, (coords[1]-1)*self.SCALE+self.SCALE//2, 16, (coords[0], coords[1]-1)) 
-                    if coords[1] == 6 and (coords[0], coords[1]-2) not in pos:                   
-                        self.create_cirle(coords[0]*self.SCALE+self.SCALE//2, (coords[1]-2)*self.SCALE+self.SCALE//2, 16, (coords[0], coords[1]-2))            
-                                      
-                if self.last_move["type"] == "pblack" and self.last_move["move"][1][1] - 2 == self.last_move["move"][0][1] and self.last_move["move"][1][1] == coords[1]:
-                    self.en_passant["piece"] = self.last_move["piece"]
-                    self.en_passant["canhappen"] = True
-                    print("en_passent")
-                    if self.last_move["move"][1][0] + 1 == coords[0]: 
-                        self.create_cirle((coords[0]-1)*self.SCALE+self.SCALE//2, (coords[1]-1)*self.SCALE+self.SCALE//2, 16, (coords[0]-1, coords[1]-1), 1) 
-                        self.en_passant["coords"] = (coords[0]-1, coords[1]-1)
-                    if self.last_move["move"][1][0] - 1 == coords[0]: 
-                        self.create_cirle((coords[0]+1)*self.SCALE+self.SCALE//2, (coords[1]-1)*self.SCALE+self.SCALE//2, 16, (coords[0]+1, coords[1]-1), 1) 
-                        self.en_passant["coords"] = (coords[0]+1, coords[1]-1)
+                self.pawn_move("black", coords, pos, 1, 6)
             else:
-                for cord in [(coords[0]+1, coords[1]+1), (coords[0]-1, coords[1]+1)]:
-                    if cord in pos:
-                        if any(i.find("white") != -1 for i in self.canvas.itemcget(list(self.piece_position.keys())[list(pos).index(cord)], "tags").split(" ")):
-                            self.create_cirle((cord[0])*self.SCALE+self.SCALE//2, (cord[1])*self.SCALE+self.SCALE//2, 16, cord) 
-                if (coords[0], coords[1]+1) not in pos:
-                    self.create_cirle(coords[0]*self.SCALE+self.SCALE//2, (coords[1]+1)*self.SCALE+self.SCALE//2, 16, (coords[0], coords[1]+1)) 
-                    if coords[1] == 1 and (coords[0], coords[1]+2) not in pos:                   
-                        self.create_cirle(coords[0]*self.SCALE+self.SCALE//2, (coords[1]+2)*self.SCALE+self.SCALE//2, 16, (coords[0], coords[1]+2))            
-                                      
-                if self.last_move["type"] == "pwhite" and self.last_move["move"][1][1] + 2 == self.last_move["move"][0][1] and self.last_move["move"][1][1] == coords[1]:
-                    self.en_passant["piece"] = self.last_move["piece"]
-                    self.en_passant["canhappen"] = True
-                    print("en_passent")
-                    if self.last_move["move"][1][0] + 1 == coords[0]: 
-                        self.create_cirle((coords[0]-1)*self.SCALE+self.SCALE//2, (coords[1]+1)*self.SCALE+self.SCALE//2, 16, (coords[0]-1, coords[1]+1), 1) 
-                        self.en_passant["coords"] = (coords[0]-1, coords[1]+1)
-                    if self.last_move["move"][1][0] - 1 == coords[0]: 
-                        self.create_cirle((coords[0]+1)*self.SCALE+self.SCALE//2, (coords[1]+1)*self.SCALE+self.SCALE//2, 16, (coords[0]+1, coords[1]+1), 1) 
-                        self.en_passant["coords"] = (coords[0]+1, coords[1]+1)
+                self.pawn_move("white", coords, pos, -1, 1)
         elif piece[0] == "n": # knight            
             if piece[1] == "w": 
-                for cord in [(coords[0]-2, coords[1]-1), (coords[0]+2, coords[1]-1), (coords[0]+2, coords[1]+1), (coords[0]-2, coords[1]+1), (coords[0]-1, coords[1]-2), (coords[0]+1, coords[1]-2), (coords[0]+1, coords[1]+2), (coords[0]-1, coords[1]+2)]:
-                    if cord in pos:
-                        if any(i.find("black") != -1 for i in self.canvas.itemcget(list(self.piece_position.keys())[list(pos).index(cord)], "tags").split(" ")):                          
-                            self.create_cirle((cord[0])*self.SCALE+self.SCALE//2, (cord[1])*self.SCALE+self.SCALE//2, 16, cord)
-                    elif cord[0] >= 0 and cord[1] >= 0 and cord[0] <= 7 and cord[1] <= 7:
-                        self.create_cirle((cord[0])*self.SCALE+self.SCALE//2, (cord[1])*self.SCALE+self.SCALE//2, 16, (cord[0], cord[1]))                    
+                self.knight_move("black", coords, pos)                  
             else:
-                for cord in [(coords[0]-2, coords[1]-1), (coords[0]+2, coords[1]-1), (coords[0]+2, coords[1]+1), (coords[0]-2, coords[1]+1), (coords[0]-1, coords[1]-2), (coords[0]+1, coords[1]-2), (coords[0]+1, coords[1]+2), (coords[0]-1, coords[1]+2)]:
-                    if cord in pos:
-                        if any(i.find("white") != -1 for i in self.canvas.itemcget(list(self.piece_position.keys())[list(pos).index(cord)], "tags").split(" ")):                          
-                            self.create_cirle((cord[0])*self.SCALE+self.SCALE//2, (cord[1])*self.SCALE+self.SCALE//2, 16, cord)
-                    elif cord[0] >= 0 and cord[1] >= 0 and cord[0] <= 7 and cord[1] <= 7:
-                        self.create_cirle((cord[0])*self.SCALE+self.SCALE//2, (cord[1])*self.SCALE+self.SCALE//2, 16, (cord[0], cord[1])) 
+                self.knight_move("white", coords, pos)
         elif piece[0] == "q": # queen
             if piece[1] == "w":
-                pass
+                self.diagonal_move(7, "black", coords, pos)
+                self.horizontal_move(7, "black", coords, pos)
             else:
-                pass
+                self.diagonal_move(7, "white", coords, pos)
+                self.horizontal_move(7, "white", coords, pos)
         elif piece[0] == "b": # bishop
             if piece[1] == "w":
-                pass
+                self.diagonal_move(7, "black", coords, pos)
             else:
-                pass 
+                self.diagonal_move(7, "white", coords, pos)
+
         elif piece[0] == "r": # rook
             if piece[1] == "w":
-                pass
+                self.horizontal_move(7, "black", coords, pos)
             else:
-                pass
+                self.horizontal_move(7, "white", coords, pos)
         elif piece[0] == "k": # king
             if piece[1] == "w":
-                pass
+                self.diagonal_move(1, "black", coords, pos)
+                self.horizontal_move(1, "black", coords, pos)
             else:
-                pass
+                self.diagonal_move(1, "white", coords, pos)
+                self.horizontal_move(1, "white", coords, pos)
 
 
         print(tags)
