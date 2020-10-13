@@ -180,6 +180,7 @@ class Board:
                         print("en_passant")
                         if self.en_passant["coords"] == coords:
                             self.canvas.delete(self.en_passant["piece"])
+                            del self.piece_position[self.en_passant["piece"][0]]
                             self.en_passant["canhappen"] = False
                             self.en_passant["piece"] = None
                             self.en_passant["coords"] = None
@@ -211,19 +212,19 @@ class Board:
         piece = tags[0]
         self.piece_type = piece
         coords = self.piece_position[self.item[0]]
-
+        #print(self.piece_position)
+        pos = self.piece_position.values()
         if piece[0] == "p":   # pawn
             if piece[1] == "w":
-                if (coords[0]-1, coords[1]-1) in self.piece_position.values():                   
-                    if any(i.find("black") != -1 for i in self.canvas.itemcget(list(self.piece_position.keys())[list(self.piece_position.values()).index((coords[0]-1, coords[1]-1))], "tags").split(" ")):
-                        self.create_cirle((coords[0]-1)*self.SCALE+self.SCALE//2, (coords[1]-1)*self.SCALE+self.SCALE//2, 16, (coords[0]-1, coords[1]-1)) 
-                if (coords[0]+1, coords[1]-1) in self.piece_position.values():
-                    if any(i.find("black") != -1 for i in self.canvas.itemcget(list(self.piece_position.keys())[list(self.piece_position.values()).index((coords[0]+1, coords[1]-1))], "tags").split(" ")):
-                        self.create_cirle((coords[0]+1)*self.SCALE+self.SCALE//2, (coords[1]-1)*self.SCALE+self.SCALE//2, 16, (coords[0]+1, coords[1]-1)) 
-                if (coords[0], coords[1]-1) not in self.piece_position.values():
+                for cord in [(coords[0]-1, coords[1]-1), (coords[0]+1, coords[1]-1)]:
+                    if cord in pos:
+                        if any(i.find("black") != -1 for i in self.canvas.itemcget(list(self.piece_position.keys())[list(pos).index(cord)], "tags").split(" ")):
+                            self.create_cirle((cord[0])*self.SCALE+self.SCALE//2, (cord[1])*self.SCALE+self.SCALE//2, 16, cord) 
+                if (coords[0], coords[1]-1) not in pos:
                     self.create_cirle(coords[0]*self.SCALE+self.SCALE//2, (coords[1]-1)*self.SCALE+self.SCALE//2, 16, (coords[0], coords[1]-1)) 
-                    if coords[1] == 6 and (coords[0], coords[1]-2) not in self.piece_position.values():                   
-                        self.create_cirle(coords[0]*self.SCALE+self.SCALE//2, (coords[1]-2)*self.SCALE+self.SCALE//2, 16, (coords[0], coords[1]-2))                
+                    if coords[1] == 6 and (coords[0], coords[1]-2) not in pos:                   
+                        self.create_cirle(coords[0]*self.SCALE+self.SCALE//2, (coords[1]-2)*self.SCALE+self.SCALE//2, 16, (coords[0], coords[1]-2))            
+                                      
                 if self.last_move["type"] == "pblack" and self.last_move["move"][1][1] - 2 == self.last_move["move"][0][1] and self.last_move["move"][1][1] == coords[1]:
                     self.en_passant["piece"] = self.last_move["piece"]
                     self.en_passant["canhappen"] = True
@@ -235,16 +236,15 @@ class Board:
                         self.create_cirle((coords[0]+1)*self.SCALE+self.SCALE//2, (coords[1]-1)*self.SCALE+self.SCALE//2, 16, (coords[0]+1, coords[1]-1), 1) 
                         self.en_passant["coords"] = (coords[0]+1, coords[1]-1)
             else:
-                if (coords[0]+1, coords[1]+1) in self.piece_position.values():
-                    if any(i.find("white") !=-1 for i in self.canvas.itemcget(list(self.piece_position.keys())[list(self.piece_position.values()).index((coords[0]+1, coords[1]+1))], "tags").split(" ")):
-                        self.create_cirle((coords[0]+1)*self.SCALE+self.SCALE//2, (coords[1]+1)*self.SCALE+self.SCALE//2, 16, (coords[0]+1, coords[1]+1)) 
-                if (coords[0]-1, coords[1]+1) in self.piece_position.values():
-                    if any(i.find("white") !=-1 for i in self.canvas.itemcget(list(self.piece_position.keys())[list(self.piece_position.values()).index((coords[0]-1, coords[1]+1))], "tags").split(" ")):
-                        self.create_cirle((coords[0]-1)*self.SCALE+self.SCALE//2, (coords[1]+1)*self.SCALE+self.SCALE//2, 16, (coords[0]-1, coords[1]+1)) 
-                if (coords[0], coords[1]+1) not in self.piece_position.values():
+                for cord in [(coords[0]+1, coords[1]+1), (coords[0]-1, coords[1]+1)]:
+                    if cord in pos:
+                        if any(i.find("white") != -1 for i in self.canvas.itemcget(list(self.piece_position.keys())[list(pos).index(cord)], "tags").split(" ")):
+                            self.create_cirle((cord[0])*self.SCALE+self.SCALE//2, (cord[1])*self.SCALE+self.SCALE//2, 16, cord) 
+                if (coords[0], coords[1]+1) not in pos:
                     self.create_cirle(coords[0]*self.SCALE+self.SCALE//2, (coords[1]+1)*self.SCALE+self.SCALE//2, 16, (coords[0], coords[1]+1)) 
-                    if coords[1] == 1 and (coords[0], coords[1]+2) not in self.piece_position.values():                   
-                        self.create_cirle(coords[0]*self.SCALE+self.SCALE//2, (coords[1]+2)*self.SCALE+self.SCALE//2, 16, (coords[0], coords[1]+2))
+                    if coords[1] == 1 and (coords[0], coords[1]+2) not in pos:                   
+                        self.create_cirle(coords[0]*self.SCALE+self.SCALE//2, (coords[1]+2)*self.SCALE+self.SCALE//2, 16, (coords[0], coords[1]+2))            
+                                      
                 if self.last_move["type"] == "pwhite" and self.last_move["move"][1][1] + 2 == self.last_move["move"][0][1] and self.last_move["move"][1][1] == coords[1]:
                     self.en_passant["piece"] = self.last_move["piece"]
                     self.en_passant["canhappen"] = True
@@ -255,18 +255,18 @@ class Board:
                     if self.last_move["move"][1][0] - 1 == coords[0]: 
                         self.create_cirle((coords[0]+1)*self.SCALE+self.SCALE//2, (coords[1]+1)*self.SCALE+self.SCALE//2, 16, (coords[0]+1, coords[1]+1), 1) 
                         self.en_passant["coords"] = (coords[0]+1, coords[1]+1)
-        elif piece[0] == "n": # knight
+        elif piece[0] == "n": # knight            
             if piece[1] == "w": 
                 for cord in [(coords[0]-2, coords[1]-1), (coords[0]+2, coords[1]-1), (coords[0]+2, coords[1]+1), (coords[0]-2, coords[1]+1), (coords[0]-1, coords[1]-2), (coords[0]+1, coords[1]-2), (coords[0]+1, coords[1]+2), (coords[0]-1, coords[1]+2)]:
-                    if cord in self.piece_position.values():
-                        if any(i.find("black") != -1 for i in self.canvas.itemcget(list(self.piece_position.keys())[list(self.piece_position.values()).index(cord)], "tags").split(" ")):                          
+                    if cord in pos:
+                        if any(i.find("black") != -1 for i in self.canvas.itemcget(list(self.piece_position.keys())[list(pos).index(cord)], "tags").split(" ")):                          
                             self.create_cirle((cord[0])*self.SCALE+self.SCALE//2, (cord[1])*self.SCALE+self.SCALE//2, 16, cord)
                     elif cord[0] >= 0 and cord[1] >= 0 and cord[0] <= 7 and cord[1] <= 7:
                         self.create_cirle((cord[0])*self.SCALE+self.SCALE//2, (cord[1])*self.SCALE+self.SCALE//2, 16, (cord[0], cord[1]))                    
             else:
                 for cord in [(coords[0]-2, coords[1]-1), (coords[0]+2, coords[1]-1), (coords[0]+2, coords[1]+1), (coords[0]-2, coords[1]+1), (coords[0]-1, coords[1]-2), (coords[0]+1, coords[1]-2), (coords[0]+1, coords[1]+2), (coords[0]-1, coords[1]+2)]:
-                    if cord in self.piece_position.values():
-                        if any(i.find("white") != -1 for i in self.canvas.itemcget(list(self.piece_position.keys())[list(self.piece_position.values()).index(cord)], "tags").split(" ")):                          
+                    if cord in pos:
+                        if any(i.find("white") != -1 for i in self.canvas.itemcget(list(self.piece_position.keys())[list(pos).index(cord)], "tags").split(" ")):                          
                             self.create_cirle((cord[0])*self.SCALE+self.SCALE//2, (cord[1])*self.SCALE+self.SCALE//2, 16, cord)
                     elif cord[0] >= 0 and cord[1] >= 0 and cord[0] <= 7 and cord[1] <= 7:
                         self.create_cirle((cord[0])*self.SCALE+self.SCALE//2, (cord[1])*self.SCALE+self.SCALE//2, 16, (cord[0], cord[1])) 
