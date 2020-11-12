@@ -26,6 +26,11 @@ class Board:
         self.last_move = {"move" : [(None, None), (None, None)], "piece" : None, "type" : None}
         self.piece_type = None
         self.en_passant = {"piece" : None, "canhappen" : False, "coords" : None}
+        self.white_king_pos = (4, 0)
+        self.black_king_pos = (4, 7)
+        self.attacked_white = []
+        self.attacked_black = []
+        self.attached_squares = []
 
         master.geometry(f"{CELL_WIDTH*8}x{CELL_HEIGHT*8}")
         #master.resizable(0, 0)
@@ -38,10 +43,6 @@ class Board:
         self.canvas.tag_bind("piece",'<B1-Motion>', self.drag)
         self.canvas.bind('<ButtonRelease-1>', self.reset)
 
-        #self.c.bind('<B1-Motion>', self.paint)
-        #self.c.bind('<ButtonRelease-1>', self.reset)
-        #self.c.bind('<B3-Motion>', self.eraseItem)
-        #self.c.bind("<Motion>", self.circle_follow)
 
         for row in range(8):
             switch = 1 - switch
@@ -61,9 +62,12 @@ class Board:
                     
         self.create_pieces()
         self.place_pieces()
+        
         print(self.PIECE_NAME)
+        self.attacked()
+        print(self.attached_squares)
 
-    def horizontal_move(self, spaces, attack_color, coords, pos):
+    def horizontal_move(self, spaces, attack_color, coords, pos, create_circles=0, isking=0):
         for x in [(coords[0], coords[1], "+y"), (coords[0], coords[1], "-y"), (coords[0], coords[1], "+x"), (coords[0], coords[1], "-x")]:
             for i in range(spaces):
                 i += 1 
@@ -72,6 +76,13 @@ class Board:
                 elif x[2] == "+x":cord = (x[0]+i, x[1])
                 elif x[2] == "-x":cord = (x[0]-i, x[1])
                 if cord[0] < 0 or cord[1] < 0 or cord[0] > 7 or cord[1] > 7:break
+                
+                if not create_circles:
+                    self.attached_squares.append(cord)
+                    break
+
+                #if isking and cord in self.attached_squares:break
+
                 if cord not in pos:
                     self.create_cirle((cord[0])*self.SCALE+self.SCALE//2, (cord[1])*self.SCALE+self.SCALE//2, 16, cord)
                 elif any(i.find(attack_color) != -1 for i in self.canvas.itemcget(list(self.piece_position.keys())[list(pos).index(cord)], "tags").split(" ")):
@@ -79,7 +90,7 @@ class Board:
                     break
                 else:break
 
-    def diagonal_move(self, spaces, attack_color, coords, pos):
+    def diagonal_move(self, spaces, attack_color, coords, pos, create_circles=0, isking=0):
         for x in [(coords[0], coords[1], "+y+x"), (coords[0], coords[1], "-y+x"), (coords[0], coords[1], "+y-x"), (coords[0], coords[1], "-y-x")]:
             for i in range(spaces):
                 i += 1 
@@ -88,6 +99,13 @@ class Board:
                 elif x[2] == "+y-x":cord = (x[0]-i, x[1]+i)
                 elif x[2] == "-y-x":cord = (x[0]-i, x[1]-i)
                 if cord[0] < 0 or cord[1] < 0 or cord[0] > 7 or cord[1] > 7:break
+                
+                if not create_circles:
+                    self.attached_squares.append(cord)
+                    break
+
+                #if isking and cord in self.attached_squares:break
+
                 if cord not in pos:
                     self.create_cirle((cord[0])*self.SCALE+self.SCALE//2, (cord[1])*self.SCALE+self.SCALE//2, 16, cord)
                 elif any(i.find(attack_color) != -1 for i in self.canvas.itemcget(list(self.piece_position.keys())[list(pos).index(cord)], "tags").split(" ")):
@@ -95,11 +113,15 @@ class Board:
                     break
                 else:break
 
-    def pawn_move(self, attack_color, coords, pos, direction, first_move_row):
+    def pawn_move(self, attack_color, coords, pos, direction, first_move_row, create_circles=0):
         for cord in [(coords[0]-(1*direction), coords[1]-(1*direction)), (coords[0]+(1*direction), coords[1]-(1*direction))]:
+            if not create_circles:
+                self.attached_squares.append(cord)
+                break
             if cord in pos:
                 if any(i.find(attack_color) != -1 for i in self.canvas.itemcget(list(self.piece_position.keys())[list(pos).index(cord)], "tags").split(" ")):
                     self.create_cirle((cord[0])*self.SCALE+self.SCALE//2, (cord[1])*self.SCALE+self.SCALE//2, 16, cord) 
+                    
             if (coords[0], coords[1]-(1*direction)) not in pos:
                 self.create_cirle(coords[0]*self.SCALE+self.SCALE//2, (coords[1]-(1*direction))*self.SCALE+self.SCALE//2, 16, (coords[0], coords[1]-(1*direction))) 
                 if coords[1] == first_move_row and (coords[0], coords[1]-(2*direction)) not in pos:                   
@@ -116,8 +138,11 @@ class Board:
                     self.create_cirle((coords[0]+(1*direction))*self.SCALE+self.SCALE//2, (coords[1]-(1*direction))*self.SCALE+self.SCALE//2, 16, (coords[0]+(1*direction), coords[1]-(1*direction)), 1) 
                     self.en_passant["coords"] = (coords[0]+(1*direction), coords[1]-(1*direction))
 
-    def knight_move(self, attack_color, coords, pos):
+    def knight_move(self, attack_color, coords, pos, create_circles=0):
         for cord in [(coords[0]-2, coords[1]-1), (coords[0]+2, coords[1]-1), (coords[0]+2, coords[1]+1), (coords[0]-2, coords[1]+1), (coords[0]-1, coords[1]-2), (coords[0]+1, coords[1]-2), (coords[0]+1, coords[1]+2), (coords[0]-1, coords[1]+2)]:
+            if not create_circles:
+                self.attached_squares.append(cord)
+                break
             if cord in pos:
                 if any(i.find(attack_color) != -1 for i in self.canvas.itemcget(list(self.piece_position.keys())[list(pos).index(cord)], "tags").split(" ")):                          
                     self.create_cirle((cord[0])*self.SCALE+self.SCALE//2, (cord[1])*self.SCALE+self.SCALE//2, 16, cord)
@@ -217,9 +242,68 @@ class Board:
             self.piece_position[i] = (column, row)
             self.canvas.coords(i, column * self.SCALE, row * self.SCALE)
 
+    def attacked(self, move_piece = None):
+        self.attached_squares.clear()
+        for i in self.canvas.find_withtag("piece"):
+            print(i)
+            tags = [i for i in self.canvas.itemcget(i, "tags").split(" ") if i in self.PIECES]
+            piece = tags[0]
+            self.piece_type = piece
+            coords = self.piece_position[i]
+            print(coords)
+            print(piece, "\n")
+            #print(self.piece_position)
+            pos = self.piece_position.values()
+            if piece[0] == "p":   # pawn
+                if piece[1] == "w":
+                    self.pawn_move("black", coords, pos, 1, 6)
+                else:
+                    self.pawn_move("white", coords, pos, -1, 1)
+            elif piece[0] == "n": # knight            
+                if piece[1] == "w": 
+                    self.knight_move("black", coords, pos)                  
+                else:
+                    self.knight_move("white", coords, pos)
+            elif piece[0] == "q": # queen
+                if piece[1] == "w":
+                    self.diagonal_move(7, "black", coords, pos)
+                    self.horizontal_move(7, "black", coords, pos)
+                else:
+                    self.diagonal_move(7, "white", coords, pos)
+                    self.horizontal_move(7, "white", coords, pos)
+            elif piece[0] == "b": # bishop
+                if piece[1] == "w":
+                    self.diagonal_move(7, "black", coords, pos)
+                else:
+                    self.diagonal_move(7, "white", coords, pos)
 
+            elif piece[0] == "r": # rook
+                if piece[1] == "w":
+                    self.horizontal_move(7, "black", coords, pos)
+                else:
+                    self.horizontal_move(7, "white", coords, pos)
+            elif piece[0] == "k": # king
+                if piece[1] == "w":
+                    self.diagonal_move(1, "black", coords, pos)
+                    self.horizontal_move(1, "black", coords, pos)
+                else:
+                    self.diagonal_move(1, "white", coords, pos)
+                    self.horizontal_move(1, "white", coords, pos)
+
+    def checkKing(self):
+        king_pos = [self.white_king_pos, self.black_king_pos]
+        pieces = {"white":[], "black":[]}
+        for king in king_pos:
+            for square in [(king[0]-1, king[1]-1), (king[0]+1, king[1]-1), (king[0]-1, king[1]+1), (king[0]+1, king[1]+1), (king[0]-1, king[1]), (king[0], king[1]-1), (king[0]+1, king[1]), (king[0], king[1]+1)]:
+                if square in self.piece_position.values():
+                   piece = list(self.piece_position.keys())[list(self.piece_position.values()).index(square)]
+                   tags = [i for i in self.canvas.itemcget(piece, "tags").split(" ") if i in self.PIECES]
+                   print(tags, piece)
+                   print(f"{square} : {list(self.piece_position.keys())[list(self.piece_position.values()).index(square)]}")
+                    
 
     def reset(self, event): 
+        self.checkKing()
         if self.item:
             try:
                 square = [i for i in self.canvas.find_overlapping(event.x, event.y, event.x, event.y) if (i,) != self.item]
@@ -227,10 +311,17 @@ class Board:
                 #print(lockin)
                 coords = (lockin[0]//self.SCALE, lockin[1]//self.SCALE)
                 print(coords)
+                print(self.piece_type)
                 if coords in self.move_position:        
                     self.last_move["move"] = (self.piece_position[self.item[0]], coords)
                     self.last_move["piece"] = self.item
                     self.last_move["type"] = self.piece_type
+
+                    if self.piece_type in ("kwhite", "kblack"):
+                        if self.piece_type == "kwhite":
+                            self.white_king_pos = coords
+                        else:
+                            self.black_king_pos = coords
 
                     if coords in self.piece_position.values():
                         delete = list(self.piece_position.keys())[list(self.piece_position.values()).index(coords)]
@@ -260,7 +351,8 @@ class Board:
                 lockin = [int(i) for i in self.canvas.coords(square[0])]
                 self.canvas.coords(self.item, lockin[0], lockin[1])
                 self.item = None
-
+            #root.update()
+            #self.attacked()
             
 
     def click(self, event):
@@ -275,41 +367,43 @@ class Board:
         coords = self.piece_position[self.item[0]]
         #print(self.piece_position)
         pos = self.piece_position.values()
+        #self.attacked(self.item)
         if piece[0] == "p":   # pawn
             if piece[1] == "w":
-                self.pawn_move("black", coords, pos, 1, 6)
+                self.pawn_move("black", coords, pos, 1, 6, 1)
             else:
-                self.pawn_move("white", coords, pos, -1, 1)
+                self.pawn_move("white", coords, pos, -1, 1, 1)
         elif piece[0] == "n": # knight            
             if piece[1] == "w": 
-                self.knight_move("black", coords, pos)                  
+                self.knight_move("black", coords, pos, 1)                  
             else:
-                self.knight_move("white", coords, pos)
+                self.knight_move("white", coords, pos, 1)
         elif piece[0] == "q": # queen
             if piece[1] == "w":
-                self.diagonal_move(7, "black", coords, pos)
-                self.horizontal_move(7, "black", coords, pos)
+                self.diagonal_move(7, "black", coords, pos, 1)
+                self.horizontal_move(7, "black", coords, pos, 1)
             else:
-                self.diagonal_move(7, "white", coords, pos)
-                self.horizontal_move(7, "white", coords, pos)
+                self.diagonal_move(7, "white", coords, pos, 1)
+                self.horizontal_move(7, "white", coords, pos, 1)
         elif piece[0] == "b": # bishop
             if piece[1] == "w":
-                self.diagonal_move(7, "black", coords, pos)
+                self.diagonal_move(7, "black", coords, pos, 1)
             else:
-                self.diagonal_move(7, "white", coords, pos)
+                self.diagonal_move(7, "white", coords, pos, 1)
 
         elif piece[0] == "r": # rook
             if piece[1] == "w":
-                self.horizontal_move(7, "black", coords, pos)
+                self.horizontal_move(7, "black", coords, pos, 1)
             else:
-                self.horizontal_move(7, "white", coords, pos)
+                self.horizontal_move(7, "white", coords, pos, 1)
         elif piece[0] == "k": # king
             if piece[1] == "w":
-                self.diagonal_move(1, "black", coords, pos)
-                self.horizontal_move(1, "black", coords, pos)
+                print("white king")
+                self.diagonal_move(1, "black", coords, pos, 1, 1)
+                self.horizontal_move(1, "black", coords, pos, 1, 1)
             else:
-                self.diagonal_move(1, "white", coords, pos)
-                self.horizontal_move(1, "white", coords, pos)
+                self.diagonal_move(1, "white", coords, pos, 1, 1)
+                self.horizontal_move(1, "white", coords, pos, 1, 1)
 
 
         print(tags)
